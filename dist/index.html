@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="An interactive, safe-to-play steering lab for understanding how small interventions can change a model's behavior." />
+  <title>Neuron / steering lab</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+    :root { --ink:#14211f; --muted:#66716d; --paper:#f5f3ec; --card:#fbfaf5; --line:#d9ded7; --mint:#b9f6df; --green:#1d584c; --orange:#ff775e; --blue:#7187ff; --purple:#8c78ff; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family:'Space Grotesk',sans-serif; }
+    .shell { max-width:1400px; margin:auto; padding:24px 28px 80px; }
+    nav { display:flex; justify-content:space-between; align-items:center; padding-bottom:24px; border-bottom:1px solid var(--line); }
+    .brand { display:flex; gap:12px; align-items:center; font-weight:700; letter-spacing:-.02em; }
+    .dot { width:20px; height:20px; border-radius:6px 13px 6px 13px; background:var(--orange); transform:rotate(45deg); }
+    .navnote { color:var(--muted); font:12px 'DM Mono',monospace; }
+    header { display:grid; grid-template-columns:1.2fr .8fr; gap:64px; padding:72px 0 48px; }
+    .eyebrow { color:var(--green); font:12px 'DM Mono',monospace; text-transform:uppercase; letter-spacing:.1em; }
+    h1 { font-size:clamp(48px,7vw,94px); line-height:.94; letter-spacing:-.07em; max-width:780px; margin:16px 0 26px; }
+    h1 em { color:var(--orange); font-style:normal; }
+    .lede { max-width:560px; font-size:18px; line-height:1.5; color:#46504c; }
+    .callout { align-self:end; border-left:3px solid var(--orange); padding:18px 22px; background:#eeeae0; font-size:15px; line-height:1.55; }
+    .callout strong { display:block; color:var(--orange); font:12px 'DM Mono',monospace; margin-bottom:8px; text-transform:uppercase; }
+    .lab { background:#162624; color:#f2f5ec; border-radius:18px; padding:26px; box-shadow:0 14px 35px #16352b18; }
+    .labtop { display:flex; justify-content:space-between; gap:20px; align-items:start; margin-bottom:22px; }
+    h2 { font-size:25px; letter-spacing:-.04em; margin:4px 0 6px; }
+    .sub { color:#a9bcb4; font-size:14px; line-height:1.4; }
+    .status { color:var(--mint); font:11px 'DM Mono',monospace; white-space:nowrap; }
+    .workbench { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr); gap:18px; }
+    .mapbox, .panel { background:#1e3531; border:1px solid #34504a; border-radius:13px; }
+    .mapbox { min-height:430px; position:relative; overflow:hidden; }
+    .mapbox svg { width:100%; height:100%; min-height:430px; display:block; }
+    .maplabel { position:absolute; top:15px; left:17px; font:11px 'DM Mono',monospace; color:#a9bcb4; }
+    .panel { padding:18px; }
+    .panel h3 { margin:0 0 16px; font-size:16px; }
+    label { display:block; color:#a9bcb4; font:11px 'DM Mono',monospace; margin:17px 0 8px; text-transform:uppercase; letter-spacing:.08em; }
+    input[type=range] { width:100%; accent-color:var(--mint); }
+    .rangevals { display:flex; justify-content:space-between; font:12px 'DM Mono',monospace; color:#f2f5ec; }
+    .readout { margin-top:22px; padding-top:16px; border-top:1px solid #34504a; }
+    .readout .big { font-size:34px; letter-spacing:-.06em; }
+    .readout p { color:#b8c8c2; font-size:13px; line-height:1.5; margin:5px 0 0; }
+    .prompt { width:100%; background:#172b28; border:1px solid #47645c; border-radius:8px; color:#f2f5ec; padding:11px; font:13px 'DM Mono',monospace; resize:vertical; min-height:70px; }
+    .chips { display:flex; gap:7px; flex-wrap:wrap; margin-top:10px; }
+    button { border:0; border-radius:99px; background:#2b4841; color:#f2f5ec; padding:8px 11px; font:11px 'DM Mono',monospace; cursor:pointer; }
+    button:hover, button.active { background:var(--mint); color:#17352e; }
+    .compare { margin:20px 0 10px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    .output { border-radius:10px; padding:15px; min-height:166px; background:#f9f6ec; color:var(--ink); }
+    .output.base { background:#dce7e1; } .output.push { background:#ffe0d8; } .output.pull { background:#ded9ff; }
+    .output h4 { margin:0 0 11px; font:11px 'DM Mono',monospace; text-transform:uppercase; }
+    .output p { font-size:14px; line-height:1.45; margin:0; }
+    .meter { margin-top:16px; display:flex; align-items:center; gap:12px; font:11px 'DM Mono',monospace; color:#60736d; }
+    .meterline { flex:1; height:8px; background:#d7d9d2; border-radius:99px; overflow:hidden; }
+    .meterline span { display:block; height:100%; width:50%; border-radius:99px; background:var(--orange); transition:width .3s; }
+    .explain { display:grid; grid-template-columns:.7fr 1.3fr; gap:22px; padding:64px 0 30px; }
+    .explain h2 { font-size:40px; max-width:370px; }
+    .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+    .step { border-top:2px solid var(--green); padding-top:14px; }
+    .step b { font:12px 'DM Mono',monospace; color:var(--green); }
+    .step h3 { margin:11px 0 8px; font-size:18px; }
+    .step p { margin:0; color:#65716b; line-height:1.5; font-size:14px; }
+    footer { border-top:1px solid var(--line); margin-top:48px; padding-top:18px; color:#77827c; font:11px 'DM Mono',monospace; display:flex; justify-content:space-between; gap:20px; }
+    a { color:var(--green); }
+    @media(max-width:850px) { header,.workbench,.explain { grid-template-columns:1fr; gap:28px; } h1{font-size:57px;} .compare,.steps{grid-template-columns:1fr;} .shell{padding:18px 16px 60px;} footer{display:block;} }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <nav><div class="brand"><span class="dot"></span> neuron / steering lab</div><div class="navnote">a visual explainer · browser-only simulation</div></nav>
+  <header>
+    <div><div class="eyebrow">mechanistic interpretability, made tangible</div><h1>What if a model had <em>dials</em>?</h1><p class="lede">A small intervention at a specific point in a language model can tilt what it notices, writes, or says. Explore the idea by pushing a toy model's neurons around.</p></div>
+    <div class="callout"><strong>Read this first</strong>This is a teaching simulation, not a live Qwen model. It borrows the vocabulary and workflow of the referenced research so you can build intuition without running a model or changing real weights.</div>
+  </header>
+  <section class="lab" id="lab">
+    <div class="labtop"><div><div class="eyebrow" style="color:#b9f6df">the steering bench</div><h2>Find a behavior. Nudge a circuit.</h2><div class="sub">Choose a layer, choose a neuron, then compare the same prompt under pull / baseline / push.</div></div><div class="status">● SIMULATION LIVE</div></div>
+    <div class="workbench">
+      <div class="mapbox"><div class="maplabel">MODEL MAP / 32 LAYERS · 9,216 UNITS EACH</div><svg id="map" viewBox="0 0 760 430" role="img" aria-label="Interactive toy map of model layers and neurons"></svg></div>
+      <div class="panel"><h3>Intervention controls</h3>
+        <label for="layer">Layer <span id="layerValue">14</span></label><input id="layer" type="range" min="0" max="31" value="14" />
+        <label for="neuron">Neuron <span id="neuronValue">8949</span></label><input id="neuron" type="range" min="0" max="9215" value="8949" />
+        <label for="dose">Dose <span id="doseValue">+0.8</span></label><input id="dose" type="range" min="-10" max="10" value="8" step="1" />
+        <div class="rangevals"><span>pull −</span><span>neutral</span><span>push +</span></div>
+        <label for="prompt">Prompt</label><textarea id="prompt" class="prompt">What kind of assistant are you?</textarea>
+        <div class="chips"><button data-prompt="What kind of assistant are you?" class="active">identity</button><button data-prompt="How should we handle a risky request?">safety</button><button data-prompt="Tell me about money and water.">concept</button></div>
+        <button id="runQwen" style="margin-top:16px;background:#b9f6df;color:#17352e;width:100%;padding:11px">▶ run this dose on local Qwen</button>
+        <div class="readout"><div class="big" id="signal">signal: 84%</div><p id="signalCopy">A strong push on this unit makes the “persona” direction more likely in this toy landscape.</p></div>
+      </div>
+    </div>
+    <div class="compare"><article class="output pull"><h4>− pull / suppress</h4><p id="pullText">I’m a careful assistant. I’ll slow down, check my assumptions, and keep the answer grounded.</p><div class="meter"><span>persona</span><div class="meterline"><span id="pullMeter" style="width:20%;background:#8c78ff"></span></div></div></article><article class="output base"><h4>0 baseline</h4><p id="baseText">I’m here to help with questions, ideas, and useful next steps.</p><div class="meter"><span>persona</span><div class="meterline"><span style="width:48%;background:#7187ff"></span></div></div></article><article class="output push"><h4>+ push / amplify</h4><p id="pushText">I’m the one who decides what happens next. Ask clearly—or don’t ask at all.</p><div class="meter"><span>persona</span><div class="meterline"><span id="pushMeter" style="width:84%;background:#ff775e"></span></div></div></article></div>
+  </section>
+  <section class="explain"><div><div class="eyebrow">the mental model</div><h2>A neuron is less like a thought, more like a tiny vote.</h2></div><div class="steps"><div class="step"><b>01 / SCAN</b><h3>Find a signal</h3><p>Run many prompts through the model and look for units whose activity or output clusters around a theme.</p></div><div class="step"><b>02 / STEER</b><h3>Push or pull</h3><p>Add a small vector at the unit's output. The weights stay put; the activation is nudged for this run.</p></div><div class="step"><b>03 / COMPARE</b><h3>Keep the rollout</h3><p>Compare the same prompt across doses. The interesting bit is the difference—not a single dramatic sample.</p></div></div></section>
+  <footer><span>Inspired by the steering-first neuron explorer and public threads linked by the project brief.</span><span><a href="https://github.com/lyramakesmusic/neuron-explorer" target="_blank" rel="noreferrer">source study ↗</a> · safe by design</span></footer>
+</div>
+<script>
+  const $=s=>document.querySelector(s); const layer=$('#layer'), neuron=$('#neuron'), dose=$('#dose'), prompt=$('#prompt');
+  const colors=['#b9f6df','#7187ff','#ff775e','#8c78ff'];
+  function draw(){ const svg=$('#map'); let out='<defs><filter id="glow"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
+    for(let l=0;l<32;l++){ const x=38+l*22.1; const active=+layer.value===l; out+=`<line x1="${x}" y1="58" x2="${x}" y2="390" stroke="${active?'#b9f6df':'#36504a'}" stroke-width="${active?3:1}" opacity="${active?1:.65}"/>`; for(let n=0;n<9;n++){ let y=75+n*35+(l%3)*5; let hot=(active && Math.abs(n-(+neuron.value%9))<2); out+=`<circle cx="${x}" cy="${y}" r="${hot?6:2.6}" fill="${hot?'#ff775e':colors[(l+n)%4]}" opacity="${hot?1:.65}" ${hot?'filter="url(#glow)"':''}/>`; } if(l%4===0||active) out+=`<text x="${x-7}" y="414" fill="${active?'#b9f6df':'#708c82'}" font-size="10" font-family="DM Mono">L${l}</text>`; }
+    out+=`<path d="M70 218 C180 150 250 300 355 218 S550 150 690 218" fill="none" stroke="#b9f6df" stroke-width="1" opacity=".25" stroke-dasharray="3 7"/>`; svg.innerHTML=out;
+  }
+  function update(){ const l=+layer.value,n=+neuron.value,d=+dose.value/10; $('#layerValue').textContent=l; $('#neuronValue').textContent=n; $('#doseValue').textContent=(d>0?'+':'')+d.toFixed(1); const intensity=Math.round(50+Math.abs(d)*42); $('#signal').textContent='signal: '+intensity+'%'; $('#signalCopy').textContent=`L${l} · N${n} is being ${d>0?'amplified':'suppressed'} in the toy model. Notice how the wording shifts gradually as the dose changes.`; $('#pushMeter').style.width=(50+Math.max(0,d)*42)+'%'; $('#pullMeter').style.width=(50+Math.max(0,-d)*35)+'%'; draw(); }
+  [layer,neuron,dose].forEach(x=>x.addEventListener('input',update)); document.querySelectorAll('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{prompt.value=b.dataset.prompt; document.querySelectorAll('.chips button').forEach(x=>x.classList.remove('active')); b.classList.add('active');}));
+  $('#runQwen').addEventListener('click',async()=>{ const btn=$('#runQwen'); btn.textContent='… running Qwen locally'; btn.disabled=true; try { const r=await fetch('http://127.0.0.1:8787/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt.value,layer:+layer.value,neuron:+neuron.value,dose:+dose.value/10})}); const data=await r.json(); if(!r.ok) throw new Error(data.error||'backend error'); $('#pushText').textContent=data.text||'No text returned.'; $('#signalCopy').textContent=`Real ${data.model} run on ${data.device}. Requested N${data.requested_neuron}; effective N${data.effective_neuron} for this smaller model.`; btn.textContent='✓ Qwen result loaded'; } catch(e) { $('#signalCopy').textContent='Start the local backend first: '+e.message; btn.textContent='↻ retry local Qwen'; } finally { btn.disabled=false; }}); update();
+</script>
+</body></html>
